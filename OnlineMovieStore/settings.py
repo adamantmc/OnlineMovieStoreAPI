@@ -114,7 +114,8 @@ REST_FRAMEWORK = {
 }
 
 JWT_AUTH = {
-    'JWT_AUTH_COOKIE': "auth"
+    'JWT_AUTH_COOKIE': 'auth',
+    'JWT_RESPONSE_PAYLOAD_HANDLER': 'authentication.payload_handler.jwt_response_payload_handler'
 }
 
 # Internationalization

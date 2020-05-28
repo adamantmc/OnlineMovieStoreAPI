@@ -23,3 +23,19 @@ class ModelAttributeFiltering(filters.BaseFilterBackend):
 
         # Return the filtered queryset
         return queryset.filter(**queryset_filter_kwargs)
+
+
+class GenreFiltering(filters.BaseFilterBackend):
+
+    GENRE_PARAM_NAME = "genre"
+
+    def filter_queryset(self, request, queryset, view):
+
+        # If the genre param is in the query, filter against it
+        if GenreFiltering.GENRE_PARAM_NAME in request.query_params:
+            genre = request.query_params.get(GenreFiltering.GENRE_PARAM_NAME)
+            qs = queryset.filter(genres__title__iexact=genre)
+            return qs
+        else:
+            # Don't filter at all
+            return queryset

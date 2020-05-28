@@ -1,6 +1,6 @@
 from django.db import models
 import uuid
-from datetime import datetime
+import datetime
 from typing import List, Tuple
 
 
@@ -10,9 +10,13 @@ def get_valid_years() -> List[Tuple]:
     :return: list of tuples containing value and human-readable value, same in this case
     """
     start = 1888 # oldest film in existence!
-    current_year = datetime.now().year
+    current_year = datetime.datetime.now().year
 
     return [(x, x) for x in range(start, current_year + 1)]
+
+
+def get_current_datetime() -> datetime.datetime:
+    return datetime.datetime.now(datetime.timezone.utc)
 
 
 class Genre(models.Model):
@@ -33,3 +37,19 @@ class Movie(models.Model):
 
     genres = models.ManyToManyField(Genre)
 
+
+class Rental(models.Model):
+    # primary key automatically added
+    uuid = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
+
+    # Rented movie fk
+    movie = models.ForeignKey(Movie, on_delete=models.CASCADE)
+
+    # Date of rental
+    rental_date = models.DateTimeField(default=get_current_datetime, editable=False)
+
+    # Date of return - filled when the rented movie is returned
+    return_date = models.DateTimeField(default=None, editable=False, null=True)
+
+    # Fee - calculated on return
+    fee = models.FloatField(default=0, editable=False)
