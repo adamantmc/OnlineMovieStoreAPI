@@ -6,7 +6,7 @@ from rest_framework.decorators import api_view
 from movie_store.models import Movie, Genre, Rental
 from movie_store.serializers import MovieSerializer, GenreSerializer, RentalSerializer, RentalCreateSerializer
 from movie_store.filters import ModelAttributeFiltering, GenreFiltering
-from movie_store.logic import calculate_fee
+from movie_store.logic import FeeCalculator
 import datetime
 import uuid
 
@@ -35,6 +35,26 @@ class RentalViewSet(viewsets.ModelViewSet):
         else:
             return RentalSerializer
 
+    def create(self, request, *args, **kwargs):
+        serializer_class = self.get_serializer_class()
+        serializer = serializer_class(data=request.data)
+
+        valid = serializer.is_valid()
+
+        if not valid:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        movie = serializer.validated_data["movie"]
+
+        non_returned_rentals = self.get_queryset().filter(movie=movie, return_date=None)
+
+        if non_returned_rentals.count() != 0:
+            return Response({"error": "This movie is already rented"}, status=status.HTTP_400_BAD_REQUEST)
+
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
 
 @api_view(["PATCH"])
 def return_movie(request: Request, uuid: uuid.UUID) -> Response:
@@ -44,7 +64,10 @@ def return_movie(request: Request, uuid: uuid.UUID) -> Response:
         return Response({"error": "Movie is already returned"}, status=status.HTTP_400_BAD_REQUEST)
 
     rental.return_date = datetime.datetime.now(datetime.timezone.utc)
-    rental.fee = calculate_fee(rental.rental_date, rental.return_date)
+
+    fee_calculator = FeeCalculator(rental.rental_date, rental.return_date)
+
+    rental.fee = fee_calculator.calculate_fee()
     rental.save()
 
     serializer = RentalSerializer(rental)

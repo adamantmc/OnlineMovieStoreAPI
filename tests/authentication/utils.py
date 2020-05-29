@@ -1,15 +1,16 @@
 from typing import Tuple
 from django.contrib.auth.models import User
 import pytest
-import random
-import string
+from tests.common.utils import get_random_string
+
+
+LOGIN_URL = "/auth/login/"
+LOGOUT_URL = "/auth/logout/"
 
 
 def get_random_credentials() -> Tuple[str, str]:
-    chars = string.ascii_letters + string.digits
-
-    username = "".join([random.choice(chars) for i in range(16)])
-    password = "".join([random.choice(chars) for i in range(16)])
+    username = get_random_string(16)
+    password = get_random_string(16)
 
     return username, password
 
@@ -19,3 +20,12 @@ def create_random_user() -> Tuple[str, str]:
     username, password = get_random_credentials()
     User.objects.create_user(username=username, password=password)
     return username, password
+
+
+@pytest.fixture
+def logged_in_client(client):
+    u, p = create_random_user()
+    r = client.post(LOGIN_URL, {"username": u, "password": p})
+    assert r.status_code == 200
+
+    return client

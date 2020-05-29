@@ -22,7 +22,10 @@ def get_current_datetime() -> datetime.datetime:
 class Genre(models.Model):
     # primary key automatically added
     uuid = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
-    title = models.TextField()
+    title = models.TextField(unique=True)
+
+    def __str__(self):
+        return self.title
 
 
 class Movie(models.Model):
@@ -37,6 +40,8 @@ class Movie(models.Model):
 
     genres = models.ManyToManyField(Genre)
 
+    def __str__(self):
+        return "{} {} {}".format(self.title, self.director, self.year)
 
 class Rental(models.Model):
     # primary key automatically added
