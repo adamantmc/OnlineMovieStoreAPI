@@ -1,15 +1,20 @@
 from tests.common.utils import *
-from typing import List, Dict, Set, Tuple
+from typing import List, Dict, Set, Tuple, Iterable
 from movie_store.models import *
+from movie_store.serializers import RentalSerializer
+import datetime
 import pytest
-from tests.authentication.utils import logged_in_client
 
 
 MOVIES_URL = "/store/movies/"
 GENRES_URL = "/store/genres/"
+RENTALS_URL = "/store/rental/"
 
 MOVIE_URL = "/store/movies/{uuid}/"
 GENRE_URL = "/store/genres/{uuid}/"
+RENTAL_URL = "/store/rental/{uuid}/"
+
+RENTAL_RETURN_URL = "/store/rental/{uuid}/return/"
 
 
 def generate_random_genres(num_genres: int = 10) -> List[Dict]:
@@ -30,7 +35,7 @@ def generate_random_movies(genres: List[Dict], num_movies: int = 10) -> List[Dic
         description = ""
         director = get_random_string(10)
         year = get_random_int(1970, 2020)
-        movie_genres = random.sample(genres, 3)
+        movie_genres = random.sample(genres, min(3, len(genres)))
 
         movies.append({
             "title": title,
@@ -76,7 +81,25 @@ def populate_db(num_movies: int = 10, num_genres: int = 5) -> Tuple[List[Dict], 
     return movies, genres
 
 
-def movies_equal(m1, m2):
+def create_rentals(movies: List[Dict], owner, num_rentals: int = 5) -> List[Dict]:
+    rentals = []
+
+    assert num_rentals <= len(movies)
+
+    movies_to_rent = random.sample(movies, num_rentals)
+
+    for movie in movies_to_rent:
+        rental_date = datetime.datetime.now(datetime.timezone.utc)
+        movie_obj = Movie.objects.get(uuid=movie["uuid"])
+
+        r = Rental.objects.create(movie=movie_obj, rental_date=rental_date, owner=owner)
+
+        rentals.append({"movie": str(movie_obj.uuid), "rental_date": rental_date, "uuid": str(r.uuid)})
+
+    return rentals
+
+
+def movies_equal(m1: dict, m2: dict) -> bool:
     keys = ["title", "description", "year", "director"]
 
     m1_genre_set = set([g["title"] for g in m1["genres"]])
@@ -85,13 +108,19 @@ def movies_equal(m1, m2):
     return dicts_equal(m1, m2, keys) and m1_genre_set == m2_genre_set
 
 
-def genres_equal(g1, g2):
+def genres_equal(g1: dict, g2: dict) -> bool:
     return dicts_equal(g1, g2, ["title"])
 
 
-def dicts_equal(d1: Dict, d2: Dict, keys: List[str] = None) -> bool:
+def rentals_equal(d1: dict, d2: dict):
+    return dicts_equal(d1, d2, ["uuid", "movie"])
+
+
+def dicts_equal(d1: dict, d2: dict, keys: Iterable = None) -> bool:
     if keys is None:
         keys = d1.keys()
         keys = keys.union(d2.keys())
 
     return all([d1[key] == d2[key] for key in keys])
+
+

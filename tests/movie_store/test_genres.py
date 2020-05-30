@@ -2,6 +2,7 @@ import pytest
 from tests.authentication.utils import logged_in_client
 from tests.movie_store.utils import GENRES_URL, GENRE_URL,\
     populate_db, genres_equal
+import uuid
 
 
 def test_get_genres_no_auth(client):
@@ -38,3 +39,9 @@ def test_get_genre(logged_in_client):
     for genre in genres:
         r = logged_in_client.get(GENRE_URL.format(uuid=genre["uuid"]))
         assert genres_equal(genre, r.data)
+
+
+@pytest.mark.django_db
+def test_get_nonexistent_genre(logged_in_client):
+    r = logged_in_client.get(GENRE_URL.format(uuid=uuid.uuid4()))
+    assert r.status_code == 404

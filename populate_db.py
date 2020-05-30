@@ -6,7 +6,8 @@ django.setup()
 from movie_store.models import Movie, Genre
 from django.contrib.auth.models import User
 
-user = User.objects.create_user(username="user", password="user")
+User.objects.create_user(username="user1", password="user1")
+User.objects.create_user(username="user2", password="user2")
 
 genres = ["Action", "Drama", "Adventure", "Sci-Fi", "Fantasy"]
 

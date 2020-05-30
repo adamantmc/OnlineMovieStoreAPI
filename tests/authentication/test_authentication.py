@@ -4,7 +4,7 @@ import pytest
 
 @pytest.mark.django_db
 def test_login(client):
-    u, p = create_random_user()
+    u, p, _ = create_random_user()
     r = client.post(LOGIN_URL, {"username": u, "password": p})
     assert r.status_code == 200
 
@@ -26,7 +26,7 @@ def test_login_invalid_credentials(client):
 
 @pytest.mark.django_db
 def test_auth_cookie_set(client):
-    u, p = create_random_user()
+    u, p, _ = create_random_user()
     r = client.post(LOGIN_URL, {"username": u, "password": p})
     assert r.status_code == 200
 

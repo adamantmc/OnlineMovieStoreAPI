@@ -16,16 +16,24 @@ def get_random_credentials() -> Tuple[str, str]:
 
 
 @pytest.mark.django_db
-def create_random_user() -> Tuple[str, str]:
+def create_random_user() -> Tuple[str, str, User]:
     username, password = get_random_credentials()
-    User.objects.create_user(username=username, password=password)
-    return username, password
+    user_obj = User.objects.create_user(username=username, password=password)
+    return username, password, user_obj
+
+
+def login(client, username, password):
+    r = client.post(LOGIN_URL, {"username": username, "password": password})
+    assert r.status_code == 200
 
 
 @pytest.fixture
 def logged_in_client(client):
-    u, p = create_random_user()
-    r = client.post(LOGIN_URL, {"username": u, "password": p})
-    assert r.status_code == 200
+    u, p, user_obj = create_random_user()
+    login(client, u, p)
+
+    # Set user object in client - needed for specifying object ownership when creating
+    # other objects
+    client.user = user_obj
 
     return client
