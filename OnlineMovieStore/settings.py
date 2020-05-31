@@ -11,7 +11,7 @@ https://docs.djangoproject.com/en/3.0/ref/settings/
 """
 
 import os
-
+import datetime
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -108,12 +108,14 @@ AUTH_PASSWORD_VALIDATORS = [
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_jwt.authentication.JSONWebTokenAuthentication',
-    )
+    ),
+    'TEST_REQUEST_DEFAULT_FORMAT': 'json'
 }
 
 JWT_AUTH = {
     'JWT_AUTH_COOKIE': 'auth',
-    'JWT_RESPONSE_PAYLOAD_HANDLER': 'authentication.payload_handler.jwt_response_payload_handler'
+    'JWT_RESPONSE_PAYLOAD_HANDLER': 'authentication.payload_handler.jwt_response_payload_handler',
+    'JWT_EXPIRATION_DELTA': datetime.timedelta(hours=1),
 }
 
 # Internationalization

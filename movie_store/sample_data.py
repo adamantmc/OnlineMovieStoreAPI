@@ -1,14 +1,3 @@
-import sys, os, django
-sys.path.append("~/Desktop/OnlineMoveiStore/")
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "OnlineMovieStore.settings")
-django.setup()
-
-from movie_store.models import Movie, Genre
-from django.contrib.auth.models import User
-
-User.objects.create_user(username="user1", password="user1")
-User.objects.create_user(username="user2", password="user2")
-
 genres = ["Action", "Drama", "Adventure", "Sci-Fi", "Fantasy"]
 
 movies = [
@@ -76,14 +65,3 @@ movies = [
         "genres": ["Action", "Adventure", "Drama"]
     },
 ]
-
-genre_objects = {}
-
-for genre in genres:
-    obj = Genre.objects.create(title=genre)
-    genre_objects[genre] = obj
-
-for movie in movies:
-    movie_genres = [genre_objects[g] for g in movie["genres"]]
-    obj = Movie.objects.create(title=movie["title"], description=movie["description"], year=movie["year"], director=movie["director"])
-    obj.genres.set(movie_genres)

@@ -52,3 +52,6 @@ class Rental(models.Model):
 
     # Fee - calculated on return
     fee = models.FloatField(default=0, editable=False)
+
+    # Returned - field to PATCH when returning a movie
+    returned = models.BooleanField(default=False)

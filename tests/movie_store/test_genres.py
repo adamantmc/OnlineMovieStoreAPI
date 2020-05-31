@@ -2,6 +2,7 @@ import pytest
 from tests.authentication.utils import logged_in_client
 from tests.movie_store.utils import GENRES_URL, GENRE_URL,\
     populate_db, genres_equal
+from tests.common.utils import get_all_objects_pagination
 import uuid
 
 
@@ -24,9 +25,9 @@ def test_list_genres(logged_in_client):
     movies, genres = populate_db(num_movies=100, num_genres=50)
 
     r = logged_in_client.get(GENRES_URL)
-    returned_genres = r.data
+    returned_genres = get_all_objects_pagination(logged_in_client, r)
 
-    assert len(r.data) == len(genres)
+    assert r.data["count"] == len(genres)
 
     for genre in returned_genres:
         assert any([genres_equal(genre, g) for g in genres])

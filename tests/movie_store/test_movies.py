@@ -2,6 +2,7 @@ import pytest
 from tests.authentication.utils import logged_in_client
 from tests.movie_store.utils import MOVIES_URL, MOVIE_URL,\
     populate_db, movies_equal
+from tests.common.utils import get_all_objects_pagination
 import uuid
 
 
@@ -24,9 +25,9 @@ def test_list_movies(logged_in_client):
     movies, genres = populate_db(num_movies=100, num_genres=50)
 
     r = logged_in_client.get(MOVIES_URL)
-    returned_movies = r.data
+    returned_movies = get_all_objects_pagination(logged_in_client, r)
 
-    assert len(r.data) == len(movies)
+    assert r.data["count"] == len(movies)
 
     for movie in returned_movies:
         assert any([movies_equal(movie, m) for m in movies])
@@ -55,15 +56,15 @@ def test_search_movies(logged_in_client, field):
     movies, genres = populate_db(num_movies=100, num_genres=50)
 
     r = logged_in_client.get(MOVIES_URL)
-    assert len(r.data) == len(movies)
+    assert r.data["count"] == len(movies)
 
     for movie in movies:
         r = logged_in_client.get(MOVIES_URL + "?{}={}".format(field, movie[field]))
 
-        results = r.data
+        results = get_all_objects_pagination(logged_in_client, r)
         expected_results = list(filter(lambda m: m[field] == movie[field], movies))
 
-        assert len(r.data) == len(expected_results)
+        assert r.data["count"] == len(expected_results)
 
         for result in results:
             assert any([movies_equal(result, m) for m in expected_results])
@@ -74,16 +75,16 @@ def test_search_movies_by_genre(logged_in_client):
     movies, genres = populate_db(num_movies=100, num_genres=50)
 
     r = logged_in_client.get(MOVIES_URL)
-    assert len(r.data) == len(movies)
+    assert r.data["count"] == len(movies)
 
     for genre in genres:
         genre_title = genre["title"]
         r = logged_in_client.get(MOVIES_URL + "?genre={}".format(genre_title))
 
-        results = r.data
+        results = get_all_objects_pagination(logged_in_client, r)
         expected_results = list(filter(lambda m: genre_title in [g["title"] for g in m["genres"]], movies))
 
-        assert len(r.data) == len(expected_results)
+        assert r.data["count"] == len(expected_results)
 
         for result in results:
             assert any([movies_equal(result, m) for m in expected_results])

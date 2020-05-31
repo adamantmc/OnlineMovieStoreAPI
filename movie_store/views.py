@@ -5,15 +5,26 @@ from rest_framework.request import Request
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework import permissions
 from movie_store.models import Movie, Genre, Rental
-from movie_store.serializers import MovieSerializer, GenreSerializer, RentalSerializer, RentalCreateSerializer
+from movie_store.serializers import MovieSerializer, GenreSerializer, \
+    RentalSerializer, RentalCreateSerializer, RentalUpdateSerializer
 from movie_store.filters import ModelAttributeFiltering, GenreFiltering
 from movie_store.logic.fees import FeeCalculator
 from movie_store.permissions import IsOwner, check_permissions
+from rest_framework.pagination import PageNumberPagination
+from drf_yasg.utils import swagger_auto_schema
 import datetime
 import uuid
 
 
-class MovieViewSet(viewsets.ModelViewSet):
+class Pagination(PageNumberPagination):
+    page_size = 10
+    max_page_size = 100
+
+    page_size_query_param = 'page_size'
+    page_query_param = 'page'
+
+
+class MovieViewSet(viewsets.ReadOnlyModelViewSet):
     """
     ViewSet that provides movie listing and detailed movie view
     """
@@ -25,9 +36,26 @@ class MovieViewSet(viewsets.ModelViewSet):
     search_fields = ["title", "director", "year"]
 
     permission_classes = [permissions.IsAuthenticated]
+    pagination_class = Pagination
+
+    @swagger_auto_schema(
+        responses={200: MovieSerializer(many=True), 401: "Unauthorized"},
+        operation_summary="Movie Listing",
+        operation_description="List all movies"
+    )
+    def list(self, request, *args, **kwargs):
+        return super(MovieViewSet, self).list(request, *args, **kwargs)
+
+    @swagger_auto_schema(
+        responses={200: MovieSerializer, 401: "Unauthorized", 404: "Not Found."},
+        operation_summary="Movie Retrieval",
+        operation_description="Retrieve a movie with a GET request to /store/movies/'uuid'/"
+    )
+    def retrieve(self, request, *args, **kwargs):
+        return super(MovieViewSet, self).retrieve(request, *args, **kwargs)
 
 
-class GenreViewSet(viewsets.ModelViewSet):
+class GenreViewSet(viewsets.ReadOnlyModelViewSet):
     """
         ViewSet that provides genre listing and detailed genre view
     """
@@ -36,6 +64,23 @@ class GenreViewSet(viewsets.ModelViewSet):
     serializer_class = GenreSerializer
 
     permission_classes = [permissions.IsAuthenticated]
+    pagination_class = Pagination
+
+    @swagger_auto_schema(
+        responses={200: GenreSerializer(many=True), 401: "Unauthorized"},
+        operation_summary="Genre Listing",
+        operation_description="List all genres"
+    )
+    def list(self, request, *args, **kwargs):
+        return super(GenreViewSet, self).list(request, *args, **kwargs)
+
+    @swagger_auto_schema(
+        responses={200: RentalSerializer, 401: "Unauthorized", 404: "Not Found."},
+        operation_summary="Genre Retrieval",
+        operation_description="Retrieve a genre with a GET request to /store/genres/'uuid'/"
+    )
+    def retrieve(self, request, *args, **kwargs):
+        return super(GenreViewSet, self).retrieve(request, *args, **kwargs)
 
 
 class RentalViewSet(viewsets.ModelViewSet):
@@ -47,6 +92,7 @@ class RentalViewSet(viewsets.ModelViewSet):
     queryset = Rental.objects.all()
 
     permission_classes = [permissions.IsAuthenticated, IsOwner]
+    pagination_class = Pagination
     owner_field = "owner"
 
     def get_queryset(self):
@@ -58,9 +104,33 @@ class RentalViewSet(viewsets.ModelViewSet):
     def get_serializer_class(self):
         if self.action == "create":
             return RentalCreateSerializer
+        elif self.action == "update":
+            return RentalUpdateSerializer
         else:
             return RentalSerializer
 
+    @swagger_auto_schema(
+        responses={200: RentalSerializer(many=True), 401: "Unauthorized"},
+        operation_summary="Rental Listing",
+        operation_description="List all user's rentals"
+    )
+    def list(self, request, *args, **kwargs):
+        return super(RentalViewSet, self).list(request, *args, **kwargs)
+
+    @swagger_auto_schema(
+        responses={200: RentalSerializer, 401: "Unauthorized", 403: "Forbidden", 404: "Not Found."},
+        operation_summary="Rental Retrieval",
+        operation_description="Retrieve a rental with a GET request to /store/rentals/'uuid'/"
+    )
+    def retrieve(self, request, *args, **kwargs):
+        return super(RentalViewSet, self).retrieve(request, *args, **kwargs)
+
+    @swagger_auto_schema(
+        responses={201: RentalSerializer, 400: "Bad Request", 401: "Unauthorized"},
+        operation_summary="Rental Creation",
+        operation_description="Create a Rental - returns 400_BAD_REQUEST if the same movie is being rent twice "
+                              "without being returned first."
+    )
     def create(self, request, *args, **kwargs):
         serializer_class = self.get_serializer_class()
         serializer = serializer_class(data=request.data)
@@ -80,35 +150,80 @@ class RentalViewSet(viewsets.ModelViewSet):
         serializer.save(owner=request.user)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
+    @swagger_auto_schema(
+        responses={201: RentalSerializer, 400: "Bad Request", 401: "Unauthorized"},
+        operation_summary="Rental Update / Return",
+        operation_description="Update a Rental - only field that can be updated currently is the 'returned' field. "
+                              "When it is set to True, the 'return_date' and 'fee' fields of the Rental are populated. "
+                              "PATCHing with returned=True when it already is True (trying to return a movie twice) "
+                              "returns a 400_BAD_REQUEST status code."
+    )
+    def update(self, request, *args, **kwargs):
+        # rental object that may be modified
+        rental = self.get_object()
 
-@api_view(["PATCH"])
-@permission_classes([permissions.IsAuthenticated])
-def return_movie(request: Request, uuid: uuid.UUID) -> Response:
-    """
-    View that implements the return of a rented movie
-    :param request:
-    :param uuid:
-    :return:
-    """
-    rental = get_object_or_404(Rental.objects.all(), uuid=uuid)
+        serializer_class = self.get_serializer_class()
+        serializer = serializer_class(instance=rental, data=request.data, partial=True)
 
-    # Function-based views do not support has_object_permissions, so we need to call the
-    # check_permissions function defined in the permissions.py files, which is the one that
-    # IsOwner uses as well
-    if not check_permissions(rental.owner, request.user):
-        # Copy django's error
-        return Response({"detail": "You do not have permission to perform this action."}, status=status.HTTP_403_FORBIDDEN)
+        valid = serializer.is_valid()
+        if not valid:
+            return Response(serializer.errors, status.HTTP_400_BAD_REQUEST)
 
-    if rental.return_date is not None:
-        return Response({"error": "Movie is already returned"}, status=status.HTTP_400_BAD_REQUEST)
+        # Make sure that the movie can be returned only once
+        if "returned" in serializer.validated_data:
+            if rental.returned:
+                return Response({
+                    "error": "The 'returned' field cannot be modified after the movie is returned."
+                }, status=status.HTTP_400_BAD_REQUEST)
 
-    return_date = datetime.datetime.now(datetime.timezone.utc)
-    fee_calculator = FeeCalculator(rental.rental_date, return_date)
+        # Perform update
+        rental = serializer.save()
 
-    rental.return_date = datetime.datetime.now(datetime.timezone.utc)
-    rental.fee = fee_calculator.calculate_fee()
-    rental.save()
+        # If the "returned" field is set to True on the request body,
+        # we must also calculate the fee and the return date and store them
+        # in the model instance
+        if serializer.data["returned"] is True:
+            return_date = datetime.datetime.now(datetime.timezone.utc)
+            fee_calculator = FeeCalculator(rental.rental_date, return_date)
+            fee = fee_calculator.calculate_fee()
 
-    serializer = RentalSerializer(rental)
+            rental.return_date = return_date
+            rental.fee = fee
+            rental.save()
 
-    return Response(serializer.data, status=status.HTTP_200_OK)
+        # Return the whole object representation
+        serializer = RentalSerializer(instance=rental)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+# Old implementation - returning a rental through /rentals/uuid/return/
+# @api_view(["PATCH"])
+# @permission_classes([permissions.IsAuthenticated])
+# def return_movie(request: Request, uuid: uuid.UUID) -> Response:
+#     """
+#     View that implements the return of a rented movie
+#     :param request:
+#     :param uuid:
+#     :return:
+#     """
+#     rental = get_object_or_404(Rental.objects.all(), uuid=uuid)
+#
+#     # Function-based views do not support has_object_permissions, so we need to call the
+#     # check_permissions function defined in the permissions.py files, which is the one that
+#     # IsOwner uses as well
+#     if not check_permissions(rental.owner, request.user):
+#         # Copy django's error
+#         return Response({"detail": "You do not have permission to perform this action."}, status=status.HTTP_403_FORBIDDEN)
+#
+#     if rental.return_date is not None:
+#         return Response({"error": "Movie is already returned"}, status=status.HTTP_400_BAD_REQUEST)
+#
+#     return_date = datetime.datetime.now(datetime.timezone.utc)
+#     fee_calculator = FeeCalculator(rental.rental_date, return_date)
+#
+#     rental.return_date = datetime.datetime.now(datetime.timezone.utc)
+#     rental.fee = fee_calculator.calculate_fee()
+#     rental.save()
+#
+#     serializer = RentalSerializer(rental)
+#
+#     return Response(serializer.data, status=status.HTTP_200_OK)

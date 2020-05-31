@@ -38,8 +38,8 @@ def test_auth_cookie_set(client):
 
 
 @pytest.mark.django_db
-def test_logout(logged_in_client, a="asd"):
-    r = logged_in_client.get(LOGOUT_URL)
+def test_logout(logged_in_client):
+    r = logged_in_client.post(LOGOUT_URL)
     assert r.status_code == 200
 
     assert "auth" in logged_in_client.cookies
@@ -47,6 +47,6 @@ def test_logout(logged_in_client, a="asd"):
 
 
 def test_logout_without_login(client):
-    r = client.get(LOGOUT_URL)
+    r = client.post(LOGOUT_URL)
     assert r.status_code == 401
 

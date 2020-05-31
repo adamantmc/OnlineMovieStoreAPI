@@ -21,3 +21,19 @@ def get_random_string(length: int = 16) -> str:
 
 def get_random_int(lower: int, upper: int) -> int:
     return random.randint(lower, upper)
+
+
+def get_all_objects_pagination(client, response):
+    objects = []
+
+    done = False
+
+    while not done:
+        objects.extend(response.data["results"])
+
+        if response.data["next"] is None:
+            done = True
+        else:
+            response = client.get(response.data["next"])
+
+    return objects

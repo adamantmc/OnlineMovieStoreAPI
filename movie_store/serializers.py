@@ -38,7 +38,13 @@ class RentalCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Rental
         exclude = ("id", "owner")
-        read_only_fields = ("owner", "rental_date", "return_date", "fee")
+        read_only_fields = ("owner", "rental_date", "return_date", "fee", "returned")
+
+
+class RentalUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Rental
+        fields = ("returned", )
 
 
 class RentalSerializer(serializers.ModelSerializer):

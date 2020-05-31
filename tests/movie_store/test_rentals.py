@@ -1,8 +1,10 @@
+from tests.common.utils import get_all_objects_pagination
 from tests.authentication.utils import logged_in_client, create_random_user, login
 from tests.movie_store.utils import *
 from movie_store.logic.fees import FeeCalculator
 import pytest
 import uuid
+
 
 def test_get_rentals_no_auth(client):
     r = client.get(RENTALS_URL)
@@ -18,7 +20,7 @@ def test_get_rentals(logged_in_client):
     r = logged_in_client.get(RENTALS_URL)
 
     assert r.status_code == 200
-    returned_rentals = r.data
+    returned_rentals = get_all_objects_pagination(logged_in_client, r)
     assert len(returned_rentals) == num_rentals
 
     for rental in returned_rentals:
@@ -72,7 +74,7 @@ def test_rental_ownership(client):
     login(client, username, password)
 
     r = client.get(RENTALS_URL)
-    assert len(r.data) == 0
+    assert r.data["count"] == 0
 
     r = client.get(RENTAL_URL.format(uuid=user1_rentals[0]["uuid"]))
     assert r.status_code == 403
@@ -110,6 +112,8 @@ def test_rent_movie_noneditable_fields(logged_in_client):
     assert r.status_code == 400
     r = logged_in_client.post(RENTALS_URL, {"movie": movie_uuid, "return_date": datetime.datetime(2000, 1, 1)})
     assert r.status_code == 400
+    r = logged_in_client.post(RENTALS_URL, {"movie": movie_uuid, "returned": True})
+    assert r.status_code == 400
 
 
 @pytest.mark.django_db
@@ -143,7 +147,7 @@ def test_return_movie_no_auth(client):
     movies, genres = populate_db(num_movies=5, num_genres=5)
     rentals = create_rentals(movies, user_obj, num_rentals=5)
 
-    r = client.patch(RENTAL_RETURN_URL.format(uuid=rentals[0]["uuid"]))
+    r = client.patch(RENTAL_URL.format(uuid=rentals[0]["uuid"]), {"returned": True}, content_type='application/json')
     assert r.status_code == 401
 
 
@@ -152,7 +156,7 @@ def test_return_movie_nonexistent_rental(logged_in_client):
     movies, genres = populate_db(num_movies=5, num_genres=5)
     rentals = create_rentals(movies, logged_in_client.user, num_rentals=5)
 
-    r = logged_in_client.patch(RENTAL_RETURN_URL.format(uuid=uuid.uuid4()))
+    r = logged_in_client.patch(RENTAL_URL.format(uuid=uuid.uuid4()), {"returned": True}, content_type='application/json')
     assert r.status_code == 404
 
 
@@ -161,7 +165,7 @@ def test_return_movie(logged_in_client):
     movies, genres = populate_db(num_movies=5, num_genres=5)
     rentals = create_rentals(movies, logged_in_client.user, num_rentals=5)
 
-    r = logged_in_client.patch(RENTAL_RETURN_URL.format(uuid=rentals[0]["uuid"]))
+    r = logged_in_client.patch(RENTAL_URL.format(uuid=rentals[0]["uuid"]), {"returned": True}, content_type='application/json')
     assert r.status_code == 200
 
     assert "return_date" in r.data
@@ -180,10 +184,10 @@ def test_return_movie_twice(logged_in_client):
     movies, genres = populate_db(num_movies=5, num_genres=5)
     rentals = create_rentals(movies, logged_in_client.user, num_rentals=5)
 
-    r = logged_in_client.patch(RENTAL_RETURN_URL.format(uuid=rentals[0]["uuid"]))
+    r = logged_in_client.patch(RENTAL_URL.format(uuid=rentals[0]["uuid"]), {"returned": True}, content_type='application/json')
     assert r.status_code == 200
 
-    r = logged_in_client.patch(RENTAL_RETURN_URL.format(uuid=rentals[0]["uuid"]))
+    r = logged_in_client.patch(RENTAL_URL.format(uuid=rentals[0]["uuid"]), {"returned": True}, content_type='application/json')
     assert r.status_code == 400
 
 
@@ -197,7 +201,7 @@ def test_return_another_user_move(client):
     username, password, user_obj = create_random_user()
 
     login(client, username, password)
-    r = client.patch(RENTAL_RETURN_URL.format(uuid=rentals[0]["uuid"]))
+    r = client.patch(RENTAL_URL.format(uuid=rentals[0]["uuid"]), {"returned": True}, content_type='application/json')
     assert r.status_code == 403
 
 
@@ -214,5 +218,5 @@ def test_consecutive_rent_return(logged_in_client):
 
         rental_uuid = r.data["uuid"]
 
-        r = logged_in_client.patch(RENTAL_RETURN_URL.format(uuid=rental_uuid))
+        r = logged_in_client.patch(RENTAL_URL.format(uuid=rental_uuid), {"returned": True}, content_type='application/json')
         assert r.status_code == 200
