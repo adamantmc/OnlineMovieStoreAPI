@@ -195,35 +195,3 @@ class RentalViewSet(viewsets.ModelViewSet):
         serializer = RentalSerializer(instance=rental)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
-# Old implementation - returning a rental through /rentals/uuid/return/
-# @api_view(["PATCH"])
-# @permission_classes([permissions.IsAuthenticated])
-# def return_movie(request: Request, uuid: uuid.UUID) -> Response:
-#     """
-#     View that implements the return of a rented movie
-#     :param request:
-#     :param uuid:
-#     :return:
-#     """
-#     rental = get_object_or_404(Rental.objects.all(), uuid=uuid)
-#
-#     # Function-based views do not support has_object_permissions, so we need to call the
-#     # check_permissions function defined in the permissions.py files, which is the one that
-#     # IsOwner uses as well
-#     if not check_permissions(rental.owner, request.user):
-#         # Copy django's error
-#         return Response({"detail": "You do not have permission to perform this action."}, status=status.HTTP_403_FORBIDDEN)
-#
-#     if rental.return_date is not None:
-#         return Response({"error": "Movie is already returned"}, status=status.HTTP_400_BAD_REQUEST)
-#
-#     return_date = datetime.datetime.now(datetime.timezone.utc)
-#     fee_calculator = FeeCalculator(rental.rental_date, return_date)
-#
-#     rental.return_date = datetime.datetime.now(datetime.timezone.utc)
-#     rental.fee = fee_calculator.calculate_fee()
-#     rental.save()
-#
-#     serializer = RentalSerializer(rental)
-#
-#     return Response(serializer.data, status=status.HTTP_200_OK)

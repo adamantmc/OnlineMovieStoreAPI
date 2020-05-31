@@ -2,7 +2,6 @@
 
 from django.db import migrations
 from movie_store.sample_data import genres, movies
-import sys
 
 
 def add_data(apps, schema_editor):
