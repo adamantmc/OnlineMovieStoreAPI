@@ -3,11 +3,19 @@ from movie_store.models import Movie, Genre, Rental
 
 
 class CustomSerializer(serializers.ModelSerializer):
+    """
+    Serializer that validates against the read_only_fields attribute of the
+    Meta class in order to return a 400 error if a read only field is found
+    in the request body.
+
+    Used on creating and updating rentals to return 400 for any non-editable
+    fields.
+    """
     def validate(self, attrs):
         if hasattr(self, "initial_data"):
             for key in self.initial_data:
-                if key not in self.Meta.fields:
-                    raise serializers.ValidationError({key: "This field is invalid."})
+                if key in self.Meta.read_only_fields:
+                    raise serializers.ValidationError({key: "This field is cannot be modified."})
 
         return super(CustomSerializer, self).validate(attrs)
 
@@ -32,6 +40,7 @@ class RentalCreateSerializer(CustomSerializer):
     class Meta:
         model = Rental
         fields = ("movie", )
+        read_only_fields = ("uuid", "owner", "returned", "fee", "rental_date", "return_date")
 
 
 class RentalUpdateSerializer(CustomSerializer):
@@ -39,6 +48,7 @@ class RentalUpdateSerializer(CustomSerializer):
     class Meta:
         model = Rental
         fields = ("returned", )
+        read_only_fields = ("uuid", "owner", "movie", "fee", "rental_date", "return_date")
 
 
 class RentalSerializer(serializers.ModelSerializer):
