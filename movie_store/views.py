@@ -85,8 +85,8 @@ class GenreViewSet(viewsets.ReadOnlyModelViewSet):
 
 class RentalViewSet(viewsets.ModelViewSet):
     """
-    ViewSet that implements the creation of a Rental, listing current user's rentals
-    and getting a rental's details
+    ViewSet that implements the creation of a Rental, listing current user's rentals,
+    getting a rental's details, updating and returning a rental
     """
     lookup_field = "uuid"
     queryset = Rental.objects.all()
