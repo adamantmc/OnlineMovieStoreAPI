@@ -1,19 +1,15 @@
 from rest_framework import viewsets, status
-from rest_framework.generics import get_object_or_404
 from rest_framework.response import Response
-from rest_framework.request import Request
-from rest_framework.decorators import api_view, permission_classes
 from rest_framework import permissions
 from movie_store.models import Movie, Genre, Rental
 from movie_store.serializers import MovieSerializer, GenreSerializer, \
     RentalSerializer, RentalCreateSerializer, RentalUpdateSerializer
 from movie_store.filters import ModelAttributeFiltering, GenreFiltering
 from movie_store.logic.fees import FeeCalculator
-from movie_store.permissions import IsOwner, check_permissions
+from movie_store.permissions import IsOwner
 from rest_framework.pagination import PageNumberPagination
 from drf_yasg.utils import swagger_auto_schema
 import datetime
-import uuid
 
 
 class Pagination(PageNumberPagination):
@@ -96,10 +92,15 @@ class RentalViewSet(viewsets.ModelViewSet):
     owner_field = "owner"
 
     def get_queryset(self):
-        if self.action == "list":
+        if self.action == "retrieve" or self.action == "update":
+            # If we are retrieving or updating user A's rental with user B's credentials,
+            # we would like to see a 403 forbidden. If the queryset is filtered,
+            # we will see a 404 not found since the object we are trying to access
+            # is not in the queryset. So in this case, don't filter at all.
+            return Rental.objects.all()
+        else:
             return Rental.objects.filter(owner=self.request.user)
 
-        return Rental.objects.all()
 
     def get_serializer_class(self):
         if self.action == "create":
@@ -120,7 +121,7 @@ class RentalViewSet(viewsets.ModelViewSet):
     @swagger_auto_schema(
         responses={200: RentalSerializer, 401: "Unauthorized", 403: "Forbidden", 404: "Not Found."},
         operation_summary="Rental Retrieval",
-        operation_description="Retrieve a rental with a GET request to /store/rentals/'uuid'/"
+        operation_description="Retrieve a user's rental with a GET request to /store/rentals/'uuid'/"
     )
     def retrieve(self, request, *args, **kwargs):
         return super(RentalViewSet, self).retrieve(request, *args, **kwargs)
@@ -147,11 +148,14 @@ class RentalViewSet(viewsets.ModelViewSet):
         if non_returned_rentals.count() != 0:
             return Response({"error": "This movie is already rented"}, status=status.HTTP_400_BAD_REQUEST)
 
-        serializer.save(owner=request.user)
+        rental = serializer.save(owner=request.user)
+
+        # Return the whole object representation
+        serializer = RentalSerializer(instance=rental)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     @swagger_auto_schema(
-        responses={201: RentalSerializer, 400: "Bad Request", 401: "Unauthorized"},
+        responses={201: RentalSerializer, 400: "Bad Request", 401: "Unauthorized", 403: "Forbidden"},
         operation_summary="Rental Update / Return",
         operation_description="Update a Rental - only field that can be updated currently is the 'returned' field. "
                               "When it is set to True, the 'return_date' and 'fee' fields of the Rental are populated. "
@@ -170,7 +174,9 @@ class RentalViewSet(viewsets.ModelViewSet):
             return Response(serializer.errors, status.HTTP_400_BAD_REQUEST)
 
         # Make sure that the movie can be returned only once
+        # If the "returned" field is in the request body
         if "returned" in serializer.validated_data:
+            # If the movie is already returned
             if rental.returned:
                 return Response({
                     "error": "The 'returned' field cannot be modified after the movie is returned."
@@ -182,6 +188,7 @@ class RentalViewSet(viewsets.ModelViewSet):
         # If the "returned" field is set to True on the request body,
         # we must also calculate the fee and the return date and store them
         # in the model instance
+        # If the movie was already returned we would have returned a response from the code above
         if "returned" in serializer.validated_data and serializer.validated_data["returned"] is True:
             return_date = datetime.datetime.now(datetime.timezone.utc)
             fee_calculator = FeeCalculator(rental.rental_date, return_date)

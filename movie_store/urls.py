@@ -6,7 +6,6 @@ urlpatterns = [
     path('movies/', MovieViewSet.as_view({"get": "list"})),
     path('genres/<uuid:uuid>/', GenreViewSet.as_view({"get": "retrieve"})),
     path('genres/', GenreViewSet.as_view({"get": "list"})),
-    # path('rental/<uuid:uuid>/return/', return_movie),
     path('rentals/<uuid:uuid>/', RentalViewSet.as_view({"get": "retrieve", "patch": "update"})),
     path('rentals/', RentalViewSet.as_view({"get": "list", "post": "create"}))
 ]

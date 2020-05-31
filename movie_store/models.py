@@ -2,7 +2,6 @@ from django.db import models
 from django.conf import settings
 import uuid
 import datetime
-from typing import List, Tuple
 
 
 def get_current_datetime() -> datetime.datetime:

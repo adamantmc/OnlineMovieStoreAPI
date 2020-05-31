@@ -116,8 +116,8 @@ def rentals_equal(d1: dict, d2: dict):
 
 def dicts_equal(d1: dict, d2: dict, keys: Iterable = None) -> bool:
     if keys is None:
-        keys = d1.keys()
-        keys = keys.union(d2.keys())
+        keys = set(d1.keys())
+        keys = keys.union(set(d2.keys()))
 
     return all([d1[key] == d2[key] for key in keys])
 

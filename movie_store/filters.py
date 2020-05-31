@@ -2,8 +2,18 @@ from rest_framework import filters
 
 class ModelAttributeFiltering(filters.BaseFilterBackend):
 
-    # TODO: typing?
     def filter_queryset(self, request, queryset, view):
+        """
+        Filters the queryset using the query params in the URL
+        :param request:
+        :param queryset:
+        :param view:
+        :return:
+        """
+        # Filter only list views
+        if getattr(view, "action", None) is not None and view.action != "list":
+            return queryset
+
         # Get searchable fields from view
         searchable_fields = getattr(view, "search_fields", [])
 
@@ -30,6 +40,9 @@ class GenreFiltering(filters.BaseFilterBackend):
     GENRE_PARAM_NAME = "genre"
 
     def filter_queryset(self, request, queryset, view):
+        # Filter only list views
+        if getattr(view, "action", None) is not None and view.action != "list":
+            return queryset
 
         # If the genre param is in the query, filter against it
         if GenreFiltering.GENRE_PARAM_NAME in request.query_params:

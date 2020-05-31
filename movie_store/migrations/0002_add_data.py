@@ -5,6 +5,12 @@ from movie_store.sample_data import genres, movies
 
 
 def add_data(apps, schema_editor):
+    """
+    Adds movies and genres found in movie_store.sample_data to the database
+    :param apps:
+    :param schema_editor:
+    :return: None
+    """
     Movie = apps.get_model("movie_store", "Movie")
     Genre = apps.get_model("movie_store", "Genre")
 
@@ -22,7 +28,6 @@ def add_data(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ('movie_store', '0001_initial'),
     ]

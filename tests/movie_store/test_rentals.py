@@ -4,7 +4,7 @@ from tests.movie_store.utils import *
 from movie_store.logic.fees import FeeCalculator
 import pytest
 import uuid
-
+import datetime
 
 def test_get_rentals_no_auth(client):
     r = client.get(RENTALS_URL)
@@ -142,6 +142,63 @@ def test_rent_movie_twice(logged_in_client):
 
 
 @pytest.mark.django_db
+def test_two_users_rent_same_movie(client):
+    movies, genres = populate_db(num_movies=5, num_genres=5)
+    movie = movies[0]
+
+    username1, password1, user_obj1 = create_random_user()
+    login(client, username1, password1)
+    r = client.post(RENTALS_URL, {"movie": movie["uuid"]})
+    assert r.status_code == 201
+
+    username2, password2, user_obj2 = create_random_user()
+    login(client, username2, password2)
+    r = client.post(RENTALS_URL, {"movie": movie["uuid"]})
+    assert r.status_code == 201
+
+
+@pytest.mark.django_db
+def test_patch_rental_noneditable_fields(logged_in_client):
+    movies, genres = populate_db(num_movies=2, num_genres=1)
+    movie = movies[0]
+
+    r = logged_in_client.post(RENTALS_URL, {"movie": movie["uuid"]})
+    rental_uuid = r.data["uuid"]
+
+    assert r.status_code == 201
+    assert r.data["movie"] == movies[0]["uuid"]
+
+    r = logged_in_client.patch(RENTAL_URL.format(uuid=rental_uuid), {"movie": movies[1]["uuid"]},
+                               content_type='application/json')
+    assert r.status_code == 400
+    r = logged_in_client.patch(RENTAL_URL.format(uuid=rental_uuid), {"fee": 5},
+                               content_type='application/json')
+    assert r.status_code == 400
+    r = logged_in_client.patch(RENTAL_URL.format(uuid=rental_uuid), {"rental_date": datetime.datetime.now()},
+                               content_type='application/json')
+    assert r.status_code == 400
+    r = logged_in_client.patch(RENTAL_URL.format(uuid=rental_uuid), {"return_date": datetime.datetime.now()},
+                               content_type='application/json')
+    assert r.status_code == 400
+
+
+@pytest.mark.django_db
+def test_patch_rental_no_data_no_change(logged_in_client):
+    movies, genres = populate_db(num_movies=2, num_genres=1)
+    movie = movies[0]
+
+    r1 = logged_in_client.post(RENTALS_URL, {"movie": movie["uuid"]})
+    rental_uuid = r1.data["uuid"]
+
+    assert r1.status_code == 201
+    assert r1.data["movie"] == movies[0]["uuid"]
+
+    r2 = logged_in_client.patch(RENTAL_URL.format(uuid=rental_uuid), data={}, content_type='application/json')
+    assert r2.status_code == 200
+    assert dicts_equal(r1.data, r2.data)
+
+
+@pytest.mark.django_db
 def test_return_movie_no_auth(client):
     username, password, user_obj = create_random_user()
     movies, genres = populate_db(num_movies=5, num_genres=5)
@@ -194,10 +251,11 @@ def test_return_movie_twice(logged_in_client):
 @pytest.mark.django_db
 def test_return_another_user_move(client):
     # user1
-    username, password, user_obj = create_random_user()
+    _, _, user_obj = create_random_user()
     movies, genres = populate_db(num_movies=5, num_genres=5)
     rentals = create_rentals(movies, user_obj, num_rentals=5)
 
+    # user2
     username, password, user_obj = create_random_user()
 
     login(client, username, password)
@@ -220,3 +278,35 @@ def test_consecutive_rent_return(logged_in_client):
 
         r = logged_in_client.patch(RENTAL_URL.format(uuid=rental_uuid), {"returned": True}, content_type='application/json')
         assert r.status_code == 200
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    "diff, result",
+    [
+        ({"days": 0, "seconds": 1}, 1),
+        ({"days": 1, "seconds": 1}, 2),
+        ({"days": 2, "seconds": 1}, 3),
+        ({"days": 3, "seconds": 1}, 3.5),
+        ({"days": 4, "seconds": 1}, 4),
+        ({"days": 5, "seconds": 1}, 4.5)
+    ]
+)
+def test_fee_calculation_standard(logged_in_client, diff, result):
+    username, password, user_obj = create_random_user()
+    movies, genres = populate_db(num_movies=1, num_genres=5)
+    rentals = create_rentals(movies, logged_in_client.user, num_rentals=1)
+
+    rental_uuid = rentals[0]["uuid"]
+    rental_obj = Rental.objects.get(uuid=rental_uuid)
+
+    rental_date = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(**diff)
+    rental_obj.rental_date = rental_date
+    rental_obj.save()
+
+    r = logged_in_client.patch(RENTAL_URL.format(uuid=rental_uuid), {"returned": True}, content_type='application/json')
+    fee = r.data["fee"]
+
+    assert fee == result
+
+
