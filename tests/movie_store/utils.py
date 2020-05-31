@@ -8,13 +8,11 @@ import pytest
 
 MOVIES_URL = "/store/movies/"
 GENRES_URL = "/store/genres/"
-RENTALS_URL = "/store/rental/"
+RENTALS_URL = "/store/rentals/"
 
 MOVIE_URL = "/store/movies/{uuid}/"
 GENRE_URL = "/store/genres/{uuid}/"
-RENTAL_URL = "/store/rental/{uuid}/"
-
-RENTAL_RETURN_URL = "/store/rental/{uuid}/return/"
+RENTAL_URL = "/store/rentals/{uuid}/"
 
 
 def generate_random_genres(num_genres: int = 10) -> List[Dict]:

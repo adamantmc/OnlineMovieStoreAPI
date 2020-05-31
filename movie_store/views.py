@@ -182,7 +182,7 @@ class RentalViewSet(viewsets.ModelViewSet):
         # If the "returned" field is set to True on the request body,
         # we must also calculate the fee and the return date and store them
         # in the model instance
-        if serializer.data["returned"] is True:
+        if "returned" in serializer.validated_data and serializer.validated_data["returned"] is True:
             return_date = datetime.datetime.now(datetime.timezone.utc)
             fee_calculator = FeeCalculator(rental.rental_date, return_date)
             fee = fee_calculator.calculate_fee()
