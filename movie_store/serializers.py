@@ -26,6 +26,14 @@ class GenreSerializer(serializers.ModelSerializer):
         exclude = ("id", )
 
 
+class MovieListSerializer(serializers.ModelSerializer):
+    genres = GenreSerializer(read_only=True, many=True)
+
+    class Meta:
+        model = Movie
+        fields = ("uuid", "title", "year", "director", "genres")
+
+
 class MovieSerializer(serializers.ModelSerializer):
     genres = GenreSerializer(read_only=True, many=True)
 

@@ -97,8 +97,11 @@ def create_rentals(movies: List[Dict], owner, num_rentals: int = 5) -> List[Dict
     return rentals
 
 
-def movies_equal(m1: dict, m2: dict) -> bool:
-    keys = ["title", "description", "year", "director"]
+def movies_equal(m1: dict, m2: dict, ignore_description=False) -> bool:
+    keys = ["title", "year", "director"]
+
+    if not ignore_description:
+        keys.append("description")
 
     m1_genre_set = set([g["title"] for g in m1["genres"]])
     m2_genre_set = set([g["title"] for g in m2["genres"]])

@@ -30,7 +30,7 @@ def test_list_movies(logged_in_client):
     assert r.data["count"] == len(movies)
 
     for movie in returned_movies:
-        assert any([movies_equal(movie, m) for m in movies])
+        assert any([movies_equal(movie, m, ignore_description=True) for m in movies])
 
 
 @pytest.mark.django_db
@@ -67,7 +67,7 @@ def test_search_movies(logged_in_client, field):
         assert r.data["count"] == len(expected_results)
 
         for result in results:
-            assert any([movies_equal(result, m) for m in expected_results])
+            assert any([movies_equal(result, m, ignore_description=True) for m in expected_results])
 
 
 @pytest.mark.django_db
@@ -87,5 +87,5 @@ def test_search_movies_by_genre(logged_in_client):
         assert r.data["count"] == len(expected_results)
 
         for result in results:
-            assert any([movies_equal(result, m) for m in expected_results])
+            assert any([movies_equal(result, m, ignore_description=True) for m in expected_results])
 

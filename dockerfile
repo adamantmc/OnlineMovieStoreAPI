@@ -2,12 +2,19 @@ FROM python:3.8-slim-buster
 
 COPY ./ /src/
 
+# Install dependencies
 RUN pip install -r ./src/requirements.txt
 
 WORKDIR ./src/
 
+# Delete database if it was copied along with the project
 RUN rm db.sqlite3
 
+# Run migrations to re-make db
 RUN python3.8 manage.py migrate
 
+# Create a test user with username 'user' and password 'user'
+RUN python3.8 add_user.py user user
+
+# Run project with gunicorn
 CMD gunicorn OnlineMovieStore.wsgi -b 0.0.0.0:8000

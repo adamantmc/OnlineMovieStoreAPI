@@ -2,8 +2,8 @@ from rest_framework import viewsets, status
 from rest_framework.response import Response
 from rest_framework import permissions
 from movie_store.models import Movie, Genre, Rental
-from movie_store.serializers import MovieSerializer, GenreSerializer, \
-    RentalSerializer, RentalCreateSerializer, RentalUpdateSerializer
+from movie_store.serializers import MovieSerializer, MovieListSerializer,\
+    GenreSerializer, RentalSerializer, RentalCreateSerializer, RentalUpdateSerializer
 from movie_store.filters import ModelAttributeFiltering, GenreFiltering
 from movie_store.logic.fees import FeeCalculator
 from movie_store.permissions import IsOwner
@@ -26,13 +26,17 @@ class MovieViewSet(viewsets.ReadOnlyModelViewSet):
     """
     lookup_field = "uuid"
     queryset = Movie.objects.all()
-    serializer_class = MovieSerializer
 
     filter_backends = [ModelAttributeFiltering, GenreFiltering]
     search_fields = ["title", "director", "year"]
 
     permission_classes = [permissions.IsAuthenticated]
     pagination_class = Pagination
+
+    def get_serializer_class(self):
+        if self.action == "list":
+            return MovieListSerializer
+        return MovieSerializer
 
     @swagger_auto_schema(
         responses={200: MovieSerializer(many=True), 401: "Unauthorized"},

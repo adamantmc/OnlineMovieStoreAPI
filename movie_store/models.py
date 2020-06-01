@@ -13,6 +13,9 @@ class Genre(models.Model):
     uuid = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
     title = models.TextField(unique=True)
 
+    class Meta:
+        ordering = ['id']
+
     def __str__(self):
         return self.title
 
@@ -28,6 +31,9 @@ class Movie(models.Model):
     director = models.TextField()
 
     genres = models.ManyToManyField(Genre)
+
+    class Meta:
+        ordering = ['id']
 
     def __str__(self):
         return "{} {} {}".format(self.title, self.director, self.year)
@@ -54,3 +60,6 @@ class Rental(models.Model):
 
     # Returned - field to PATCH when returning a movie
     returned = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ['id']
