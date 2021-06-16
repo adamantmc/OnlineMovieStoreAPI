@@ -24,10 +24,10 @@ pytest tests/
 ```
 
 ## Docker
-The `dockerfile` file can be built into a docker image by running:
+The `dockerfile` file can be built into a docker image by going into the `api` directory and running:
 
 ```
-docker build -t online_movie_store_api:latest .
+docker build -f ../devops/dockerfile -t online_movie_store_api:latest .
 ```
 
 A container can then start by running:

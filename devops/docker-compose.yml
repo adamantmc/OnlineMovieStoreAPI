@@ -1,0 +1,10 @@
+services:
+    nginx:
+        image: nginx:latest
+        ports:
+            - 80:80
+        volumes:
+            - ./nginx:/etc/nginx/conf.d 
+    movie_store_api:
+        image: online_movie_store_api:latest
+
