@@ -14,7 +14,10 @@ class Genre(BaseModel):
     class Config:
         orm_mode = True
 
-        
+
+GenreList = create_paginated_response_schema(Genre)
+
+
 class Movie(BaseModel):
     uuid: uuid.UUID
     title: str

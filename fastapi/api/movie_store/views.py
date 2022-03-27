@@ -17,6 +17,26 @@ from sqlalchemy.orm import Session
 router = APIRouter(prefix="/store", tags=["store"])
 
 
+@router.get("/genres/{genre_uuid}/",
+            response_model=store_schemas.Genre,
+            dependencies=[Depends(authenticate_user_via_token)])
+async def retrieve_genre(genre_id: uuid.UUID, session: Session = Depends(get_session)):
+    genre = store_queries.get_genre(session, genre_id)
+
+    if genre is None:
+        raise HTTPException(status_code=404, detail="Genre not found")
+
+    return genre
+
+
+@router.get("/genres/", response_model=store_schemas.GenreList, dependencies=[Depends(authenticate_user_via_token)])
+async def list_genres(pagination: PaginationParams = Depends(), session: Session = Depends(get_session)):
+    genres = store_queries.get_genres(session, pagination)
+    total = store_queries.count_genres(session)
+
+    return get_paginated_dict(genres, pagination, total)
+
+
 @router.get("/movies/{movie_uuid}/",
             response_model=store_schemas.Movie,
             dependencies=[Depends(authenticate_user_via_token)])

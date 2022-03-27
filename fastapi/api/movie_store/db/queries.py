@@ -51,6 +51,20 @@ def count_movies(session: Session) -> int:
     return session.query(func.count(Movie.id)).scalar()
 
 
+def get_genre(session: Session, genre_uuid: uuid.UUID):
+    return session.query(Genre).filter(Genre.uuid == str(genre_uuid)).first()
+
+
+def get_genres(session: Session, pagination: PaginationParams):
+    query = session.query(Genre)
+    query = paginate(query, page=pagination.page, page_size=pagination.page_size)
+    return query.all()
+
+
+def count_genres(session: Session) -> int:
+    return session.query(func.count(Genre.id)).scalar()
+
+
 def get_rentals(session: Session, user_id: int, pagination: PaginationParams):
     query = filter_owned_rentals(user_id, session.query(Rental).options(
         joinedload(Rental.movie_relationship), joinedload(Rental.movie_relationship, Movie.genres)
@@ -71,8 +85,6 @@ def get_rental(session: Session, user_id: int, rental_uuid: uuid.UUID) -> Rental
     ).filter(Rental.uuid == str(rental_uuid))
 
     rental = query.first()
-
-    session.expunge(rental)
 
     return rental
 
