@@ -30,4 +30,7 @@ def authenticate_user_via_token(http_auth: HTTPAuthorizationCredentials = Depend
 
     db_user = get_user_by_email(payload["email"])
 
+    if db_user is None:
+        raise HTTPException(401, detail="Token expired or invalid")
+
     return db_user

@@ -20,4 +20,4 @@ class BaseSchemaConfig:
 
 
 def get_current_datetime() -> datetime.datetime:
-    return datetime.datetime.now(datetime.timezone.utc)
+    return datetime.datetime.utcnow()

@@ -1,4 +1,4 @@
-from sqlalchemy import String, Integer, Float, Boolean, DateTime, ForeignKey, Column
+from sqlalchemy import String, Integer, DateTime, Column
 from db.conn import Base
 import datetime
 import uuid
