@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: oms-fastapi-deployment
+  labels:
+    app: oms-fastapi
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: oms-fastapi
+  template:
+    metadata:
+      labels:
+        app: oms-fastapi
+    spec:
+      containers:
+      - name: oms-fastapi-container
+        image: swagdam/oms:fastapi
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8000
+      imagePullSecrets:
+        - name: registry
+
