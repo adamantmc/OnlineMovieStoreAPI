@@ -1,0 +1,11 @@
+FROM python:3.8-slim-buster
+
+COPY ./ /src/
+
+# Install dependencies
+RUN pip install -r ./src/requirements.txt
+
+WORKDIR ./src/
+
+# Run project with gunicorn
+CMD gunicorn main:app --worker-class uvicorn.workers.UvicornWorker -b 0.0.0.0:8000 --workers 1
