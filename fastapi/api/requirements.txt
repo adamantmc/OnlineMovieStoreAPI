@@ -1,4 +1,4 @@
-fastapi==0.77.1
+fastapi==0.109.1
 SQLAlchemy==1.4.36
 uvicorn==0.17.6
 passlib==1.7.4
